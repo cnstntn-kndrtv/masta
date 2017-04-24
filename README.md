@@ -1,2 +1,2 @@
-# masta
-Ontology-based Morphology And Semantical Text Analyser
+# owsama
+Ontology-based Word Semantics and Morphology Analyser
