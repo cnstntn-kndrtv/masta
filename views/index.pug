@@ -1,0 +1,60 @@
+extends layout
+append head 
+  link(href="/css/ace.css", rel="stylesheet")
+  link(href="/css/tags.css", rel="stylesheet")
+
+block content
+  +nav("owsama")
+  
+  .container-fluid
+    .row
+      .col-lg-6.col-md-6
+        .panel.panel-default
+          .panel-heading Редактор
+          .panel-body
+            #editor-container
+          .panel-footer
+            button.btn.btn-primary.btn-raised#analyseTextButton Анализировать текст
+            span.togglebutton
+              label
+                input#refreshmode(type='checkbox')
+                | Автообновление
+
+      .col-lg-6.col-md-6
+        .panel.panel-default
+          .panel-heading#results-heading Результаты анализа
+          .panel-body.scrollable#results-panel
+            #words-container Тут буду результаты анализа текста
+
+      //- .col-lg-12.col-md-12
+      //-   .panel.panel-default#single-word-variants(style="visibility: visible;")
+      //-     .panel-heading Варианты морфологического анализа слова
+      //-     .panel-body
+      //-       .row
+      //-         .col-md-3
+      //-           input.form-control(type='text', value='порграмер')#single-word
+      //-           button.btn.btn-primary.btn-raised(onclick='updateSingleWordMorphVariants();') Показать варианты
+      //-         .col-md-12
+      //-           #single-word-variants-results Введите слово. Или выберите в таблице с результатами Морфологического анализа
+      //-           #single-word-modals
+
+  //ace
+  script(src="/js/ace/src-nonconflict/ace.js")
+  // az
+  //- script(src="/js/az.js")
+  //- script(src="/js/az.dawg.js")
+  //- script(src="/js/az.morph.js")
+  script(src="/js/az.tokens.js")
+  // ldf-client
+  //- script(src='/js/ldf-client/ldf-client-browser.js')
+  //- script(src='js/ldf-client/ldf-client-worker.js')
+  // d3
+  script(src='/js/d3.js')
+  // n3
+  script(src="/js/n3-browser.min.js")
+  // main
+  script(src='/js/lexinfo-tags-description.js')
+  script(src='/js/lexinfo-pos-classes.js')
+  script(src='/js/azmorph-labels.js')
+  script(src='/js/stars.js')
+  script(src='/js/main.js')

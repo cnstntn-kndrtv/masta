@@ -1,0 +1,43 @@
+{
+  "name": "owsama",
+  "version": "1.0.0",
+  "description": "Ontology-based Word Semantics and Morphology Analyser",
+  "main": "app.js",
+  "scripts": {
+    "start": "node ./bin/www",
+    "nodemon": "node node_modules/nodemon/bin/nodemon.js ./bin/www"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cnstntn-kndrtv/owsama.git"
+  },
+  "author": "Constantin Kondratyev",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/cnstntn-kndrtv/owsama/issues"
+  },
+  "homepage": "https://github.com/cnstntn-kndrtv/owsama#readme",
+  "dependencies": {
+    "az": "git+https://github.com/cnstntn-kndrtv/Az.js.git",
+    "body-parser": "~1.15.1",
+    "bootstrap": "^3.3.7",
+    "bootstrap-material-design": "^0.5.10",
+    "cookie-parser": "~1.4.3",
+    "d3": "^4.8.0",
+    "debug": "~2.2.0",
+    "express": "~4.13.4",
+    "jquery": "^3.1.0",
+    "ldf-client": "^2.0.4",
+    "lru-cache": "^4.0.2",
+    "lru_map": "^0.3.3",
+    "morgan": "~1.7.0",
+    "pug": "latest",
+    "serve-favicon": "~2.3.0"
+  },
+  "devDependencies": {
+    "browserify": "^14.3.0",
+    "nodemon": "^1.10.2",
+    "single-line-log": "^1.1.2",
+    "webpack": "^2.4.1"
+  }
+}

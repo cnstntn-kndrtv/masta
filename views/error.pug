@@ -1,0 +1,12 @@
+extends layout
+
+append head 
+  link(href="/css/ace.css", rel="stylesheet")
+  link(href="/css/tags.css", rel="stylesheet")
+
+block content
+  +nav("index")
+
+  h1= message
+  h2= error.status
+  pre #{error.stack}

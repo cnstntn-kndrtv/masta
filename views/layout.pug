@@ -1,0 +1,23 @@
+doctype html
+html
+  head
+    block head
+      title= title
+      include ./favicon.pug
+      link(href="/css/bootstrap.min.css", rel="stylesheet")
+      //link(href="/css/bootstrap-material-ui-kit.css", rel="stylesheet")
+      link(href="/css/bootstrap-material-design.css", rel="stylesheet")
+      link(href="/css/ripples.css", rel="stylesheet")
+      link(href="/css/custom.css", rel="stylesheet")
+      
+      script(src="/js/jquery.min.js")
+      script(src="/js/bootstrap.min.js")
+      script(src="/js/material.min.js")
+      script(src="/js/ripples.min.js")
+      
+  body
+    include mixins
+    block content
+
+    script.
+      $.material.init();

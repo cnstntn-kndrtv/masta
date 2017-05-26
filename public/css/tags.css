@@ -1,0 +1,69 @@
+/*Части речи*/
+
+.ace_MORPH {
+    color: black !important;
+}
+
+.ace_morph_NounPOS {
+    background: #cef2a7;
+}
+
+.ace_morph_PronounPOS {
+    background: #97de49;
+}
+
+.ace_morph_NumeralPOS {
+    background: #2D9812;
+    color: #FFF !important;
+}
+
+.ace_morph_AdjectivePOS {
+    background: #FFBFBF;
+}
+
+.ace_morph_VerbPOS {
+    background: #B1BEFF;
+}
+
+.ace_morph_ParticiplePOS {
+    background: #13B5DA;
+    color: #FFF !important;
+}
+
+.ace_morph_GerundPOS {
+    background: #9C2FFF;
+    color: #FFF !important;
+}
+
+.ace_morph_AdverbPOS {
+    background: #64edd4;
+}
+
+.ace_morph_AdpositionPOS {
+    background: #F79F00;
+    color: #FFF !important;
+}
+
+.ace_morph_FusedPrepositionPOS {
+    background: #BC7A03;
+    color: #FFF !important;
+}
+
+.ace_morph_ConjunctionPOS {
+    background: #BFBF00;
+    color: #FFF !important;
+}
+
+.ace_morph_ParticlePOS {
+    background: #fbeb2b;
+}
+
+.ace_morph_SymbolPOS {
+    background: #ff7818;
+    color: #FFF !important;
+}
+
+.ace_morph_DeterminerPOS {
+    background: #800000;
+    color: #FFF !important;
+}

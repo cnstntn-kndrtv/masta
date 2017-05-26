@@ -1,0 +1,29 @@
+#editor-container {
+    /*position: absolute;*/
+    /*width: 500px;*/
+    height: 300px;
+    border: 1px solid lightgray;
+}
+
+#results-panel {
+    height: 500px !important;
+}
+
+#all-forms-table {
+    max-height: 50vh !important;
+}
+
+.scrollable {
+    overflow: scroll;
+}
+
+.ace_status-indicator {
+    color: gray;
+    /*position: absolute;*/
+    /*right: 0;*/
+    border-left: 1px solid;
+}
+
+.errorUnderline {
+    border-bottom: 2px solid red;
+}
