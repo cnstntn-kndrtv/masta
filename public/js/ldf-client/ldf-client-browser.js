@@ -1607,7 +1607,8 @@ HttpClient.prototype.request = function (url, method, headers, options) {
     url: url,
     method: method || 'GET',
     headers: _.assign({}, this._defaultHeaders, headers),
-    timeout: 5000,
+    // TimeOut
+    timeout: 30000,
     followRedirect: true,
     // maximize buffer size to drain the response stream, since unconsumed responses
     // can lead to out-of-memory errors (http://nodejs.org/api/http.html)
