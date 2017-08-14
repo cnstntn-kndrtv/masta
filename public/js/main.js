@@ -389,7 +389,6 @@ function startRequests(queries) {
                 results.addCell({word: res.id, type: 'Произношение', content: value});
                 results.addCell({word: res.id, type: 'Морфология', content: value});
                 results.addCell({word: res.id, type: 'found', content: 'no'});
-                console.log(res.id, res);
             }
         }
         else {
