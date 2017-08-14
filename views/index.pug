@@ -15,16 +15,16 @@ block content
             #editor-container
           .panel-footer
             button.btn.btn-primary.btn-raised#analyseTextButton Анализировать текст
-            span.togglebutton
-              label
-                input#refreshmode(type='checkbox')
-                | Автообновление
+            //- span.togglebutton
+            //-   label
+            //-     input#refreshmode(type='checkbox')
+            //-     | Автообновление
 
       .col-lg-6.col-md-6
         .panel.panel-default
           .panel-heading#results-heading Результаты анализа
           .panel-body.scrollable#results-panel
-            #words-container Тут буду результаты анализа текста
+            #words-container
 
       //- .col-lg-12.col-md-12
       //-   .panel.panel-default#single-word-variants(style="visibility: visible;")
@@ -51,10 +51,10 @@ block content
   // d3
   script(src='/js/d3.js')
   // n3
-  script(src="/js/n3-browser.min.js")
+  //- script(src="/js/n3-browser.min.js")
   // main
   script(src='/js/lexinfo-tags-description.js')
   script(src='/js/lexinfo-pos-classes.js')
-  script(src='/js/azmorph-labels.js')
-  script(src='/js/stars.js')
+  //- script(src='/js/azmorph-labels.js')
+  //- script(src='/js/stars.js')
   script(src='/js/main.js')

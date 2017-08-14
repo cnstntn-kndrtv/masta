@@ -28,14 +28,16 @@ class Client {
         // console.log('query. workerId:', workerId, 'client #', this._clientNumber, 'num of clients', clientCounter, 'this Id', this._id);
 
         try { this._fragmentsClient = new ldf.FragmentsClient(this._config.datasource, this._config) }
-        catch (error) { 
-            postMessage({ type: 'error', error: error }); 
+        catch (error) {
+            error.id = this._id;
+            postMessage({ type: 'error', error: error });
             this.stop();
         }
-
+        
         try { this._resultsIterator = new ldf.SparqlIterator(this._config.query.query, { fragmentsClient: this._fragmentsClient }); }
         catch (error) { 
-            postMessage({ type: 'error', error: error });
+            error.id = this._id;
+            postMessage({ type: 'error', error: error});
             this.stop();
         }
 
@@ -51,11 +53,15 @@ class Client {
             });
 
             this._resultsIterator.on('error', (error) => {
-                error = { message: error.message || error.toString() };
+                error = { 
+                    message: error.message || error.toString(),
+                    id: this._id,
+                };
                 postMessage({ type: 'error', error: error });
                 this.stop();
             });
         }
+        
     }
 
     stop() {

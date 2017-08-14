@@ -2,6 +2,7 @@
  * Инициализация и запуск редктора ACE в #editor-container
  */
 var demoTxt = 'Выставка "Человек как птица. Образы путешествий" исследует вопросы новых открытий на стыке оптики и искусства, в тех сферах, которые объединены стремлением человека к познанию мира и определению своего места в нем.'
+// var demoTxt = 'Выставка "Человек как птица. Образы путешествий"'
 var editor, EditSession, nlpsession, Tokenizer, BackgroundTokenizer, bgTokenizer, Range, Search, search;
 function initACE(){
     let container = document.getElementById('editor-container');
@@ -44,10 +45,10 @@ function initACE(){
     });
 
     // автоматичекое обновление редактора, если включен чекбокс
-    let refreshmodechechbox = document.getElementById("refreshmode");
-    nlpsession.on("change", function(){
-        if(refreshmodechechbox.checked) analyzeText();
-    });
+    // let refreshmodechechbox = document.getElementById("refreshmode");
+    // nlpsession.on("change", function(){
+    //     if(refreshmodechechbox.checked) getTextInfo();
+    // });
 
     // для обновления подсветки синтаксиса
     Tokenizer = ace.require("ace/tokenizer").Tokenizer;
@@ -130,12 +131,12 @@ class QueryWorker extends MyEventEmitter {
         }
 
         this._w.onerror = (e) => {
-            // this._w.onerror = $.noop;
-            console.log('Error', e);
-            ++ec;
-            this._addResults([]);
-            this._destroy();
+            // if (e.id) console.log('Error', e);
+            ++errorCounter;
+            let res = (e.id) ? {id: e.id, error: true} : [];
+            this._addResults(res);
         }
+
     }
 
     start() {
@@ -229,9 +230,6 @@ class ResultsTable {
 
         this._res.on('addWords', () => this._update());
         this._res.on('addCell', (props) => this._update(props));
-
-        this._loadingText = '';
-        this._noResultsText = '🛠';
     }
     
     _createTable() {
@@ -255,58 +253,47 @@ class ResultsTable {
         this._rows = this._tbody.selectAll('tr')
             .data(this._res._db);
         
+        function bindData(row, that) {
+            return that._headers.map((h) => {
+                return {header: h, value: row[h], word: row[that._res._firstHeader]};
+            });
+        }
+
+        function getCellText(d) {
+            if (d.value == 'loading') return '';
+            if (d.value == 'error') return '☠️';
+            else if (!d.value) return '🛠';
+            else return d.value;
+        }
+
+        function getLoader(d) {
+            if (d.value == 'loading') return 'loader';
+            else return '';
+        }
+
         this._rows.enter()
             .append('tr')
             .selectAll('td')
-            .data((row) => {
-                return this._headers.map((h) => {
-                    return {header: h, value: row[h], word: row[this._res._firstHeader]};
-                });
-            })
+            .data((row) => bindData(row, this))
             .enter()
             .append('td')
             .append('div')
-                .text((d) => {
-                    if (d.value == 'loading') return this._loadingText;
-                    else if (!d.value) return this._noResultsText;
-                    else return d.value;
-                })
-                .attr('class', (d) => {
-                            if (d.value == 'loading') return 'loader';
-                            else return '';
-                        });
+                .text((d) => getCellText(d))
+                    .attr('class', (d) => getLoader(d));
         
         this._rows.exit().remove();
         
         this._cells = this._rows.selectAll('td')
-            .data((row) => {
-                return this._headers.map((h) => {
-                    return {header: h, value: row[h], word: row[this._res._firstHeader]};
-                });
-            })
+            .data((row) => bindData(row, this))
             .select('div')
-                .text((d) => {
-                    if (d.value == 'loading') return this._loadingText;
-                    else if (!d.value) return this._noResultsText;
-                    else return d.value;
-                })
-                    .attr('class', (d) => {
-                                if (d.value == 'loading') return 'loader';
-                                else return '';
-                            });
+                .text((d) => getCellText(d))
+                    .attr('class', (d) => getLoader(d));
         
         this._cells.enter()
             .append('td')
             .append('div')
-            .text((d) => {
-                if (d.value == 'loading') return this._loadingText;
-                else if (!d.value) return this._noResultsText;
-                else return d.value;
-            })
-                .attr('class', (d) => {
-                            if (d.value == 'loading') return 'loader';
-                            else return '';
-                        });
+            .text((d) => getCellText(d))
+                .attr('class', (d) => getLoader(d));
         
         this._cells.exit().remove();
 
@@ -320,19 +307,12 @@ class ResultsTable {
 let maxWorkers = navigator.hardwareConcurrency || 2;
 
 /**
- * возвращает литерал текстовой строки rdf
- */
-function getLiteral(l) {
-    return (l) ? N3.Util.getLiteralValue(l) : null;
-}
-
-/**
  * доступное количество воркеров
  */
 let availableWorkers = maxWorkers;
 
 // console.time
-var n = 0, ec = 0;
+var workerCounter = 0, errorCounter = 0;
 
 let headers = ['Морфология', 'Лемма', 'Произношение'];
 let firstHeader = 'Слово';
@@ -340,18 +320,19 @@ let results = new Results(headers, firstHeader);
 let table = new ResultsTable(results, '#words-container');
 
 function getTextInfo() {
-    let maxQueriesInEachWorker = Math.ceil(stars.length / maxWorkers);
     let queries = [];
-    
-    console.time('stars');
+
+    console.time('query');
     let tokenTypes = ["WORD.CYRIL"];
     let tokens = Az.Tokens(nlpsession.getDocument().getValue()).done(tokenTypes);
     let words = new Set;
     if (tokens.length != 0 ) {
         tokens.forEach((t) => {
             words.add(t.toString().toLowerCase());
-        })
+        });
         words = Array.from(words);
+        let maxQueriesInEachWorker = Math.ceil(words.length / maxWorkers);
+        // console.log('---WORKERS', maxQueriesInEachWorker, maxWorkers);
         results.clear();
         results.addWords(words);
         for (let i = 0, l = words.length, word = ''; i < l; i++) {
@@ -395,16 +376,21 @@ function startRequests(queries) {
     }
     let w = new QueryWorker(params);
     
-    // console.time
-    ++n;
+    ++workerCounter;
     
     w.start();
     w.on('data', (res) => {
         if (!res.data || res.data.length == 0) {
-            results.addCell({word: res.id, type: 'Лемма', content: null});
-            results.addCell({word: res.id, type: 'Произношение', content: null});
-            results.addCell({word: res.id, type: 'Морфология', content: null});
-            results.addCell({word: res.id, type: 'found', content: 'no'});
+            if (res != 0) {
+                // для таблицы результатов
+                // если ошибка, то сообщение об ошибки, иначе - сообщение что нет значения.
+                let value = (res.error) ? 'error' : null;
+                results.addCell({word: res.id, type: 'Лемма', content: value});
+                results.addCell({word: res.id, type: 'Произношение', content: value});
+                results.addCell({word: res.id, type: 'Морфология', content: value});
+                results.addCell({word: res.id, type: 'found', content: 'no'});
+                console.log(res.id, res);
+            }
         }
         else {
             let morph = {},
@@ -445,11 +431,11 @@ function startRequests(queries) {
     });
     
     w.on('bye', () => {
-        --n;
-        console.log(n);
-        if (n == 0) {
-            console.timeEnd('stars');
-            console.log(ec);
+        --workerCounter;
+        console.log('running workers count', workerCounter);
+        if (workerCounter == 0) {
+            console.timeEnd('query');
+            console.log('errors count', errorCounter);
         }
     });
 }
@@ -578,4 +564,12 @@ function getLiPOSClass(props) {
     let cl = lexInfoPOSClasses[pos];
     cl = (cl) ? cl.replace(liPrefix, '') : null;
     results.addCell({word: word, type: 'posClass', content: cl});
+}
+
+/**
+ * возвращает литерал текстовой строки rdf
+ */
+function getLiteral(l) {
+    let match = /^"([^]*)"/.exec(l);
+    return (match) ? match[1] : null;
 }

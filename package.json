@@ -4,7 +4,8 @@
   "description": "Ontology-based Word Semantics and Morphology Analyser",
   "main": "app.js",
   "scripts": {
-    "start": "node ./bin/www",
+    "start": "env NODE_ENV=production node ./bin/www",
+    "dev": "env NODE_ENV=production node ./bin/www",
     "nodemon": "node node_modules/nodemon/bin/nodemon.js ./bin/www"
   },
   "repository": {
@@ -22,22 +23,25 @@
     "body-parser": "~1.15.1",
     "bootstrap": "^3.3.7",
     "bootstrap-material-design": "^0.5.10",
+    "compression": "^1.7.0",
     "cookie-parser": "~1.4.3",
+    "cssmin": "^0.4.3",
     "d3": "^4.8.0",
     "debug": "~2.2.0",
     "express": "~4.13.4",
+    "express-minify": "^0.2.0",
     "jquery": "^3.1.0",
-    "ldf-client": "^2.0.4",
+    "ldf-client": "^2.0.5",
     "lru-cache": "^4.0.2",
     "lru_map": "^0.3.3",
     "morgan": "~1.7.0",
     "pug": "latest",
-    "serve-favicon": "~2.3.0"
+    "serve-favicon": "~2.3.0",
+    "uglify-js": "^3.0.27"
   },
   "devDependencies": {
     "browserify": "^14.3.0",
     "nodemon": "^1.10.2",
-    "single-line-log": "^1.1.2",
-    "webpack": "^2.4.1"
+    "single-line-log": "^1.1.2"
   }
 }

@@ -4,6 +4,8 @@ var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
+var compression = require('compression');
+var minify = require('express-minify');
 
 var app = express();
 
@@ -17,6 +19,18 @@ app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
+if (process.env.NODE_ENV == 'production') {
+  app.use(compression());
+  app.use(minify({
+    js_match: /js/,
+    css_match: /css/,
+    json_match: /json/,
+    uglifyJS: require('uglify-js'),
+    cssmin: require('cssmin'),
+    cache: false,
+    onerror: undefined,
+  }));
+}
 
 app.use(express.static(path.join(__dirname, './public')));
 // bootstrap
@@ -29,6 +43,7 @@ app.use('/js', express.static(path.join(__dirname, './node_modules/az/src')));
 // app.use('/dicts', express.static(path.join(__dirname, './node_modules/az/dicts')));
 // d3
 app.use('/js', express.static(path.join(__dirname, './node_modules/d3/build')));
+
 
 // routes
 var routes = require('./routes/index');
