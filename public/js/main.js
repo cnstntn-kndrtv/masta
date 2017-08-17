@@ -259,11 +259,14 @@ class ResultsTable {
             });
         }
 
-        function getCellText(d) {
-            if (d.value == 'loading') return '';
-            if (d.value == 'error') return '☠️';
-            else if (!d.value) return '🛠';
-            else return d.value;
+        function getCellContent(d) {
+            let span = d3.select(document.createElement('span'));
+            if (typeof(d.value) == 'object' && d.value != null) span = d.value;
+            else if (d.value == 'loading') span.text('');
+            else if (d.value == 'error') span.text('☠️');
+            else if (!d.value) span.text('🛠');
+            else span.text(d.value);
+            return span.node().outerHTML;
         }
 
         function getLoader(d) {
@@ -278,22 +281,24 @@ class ResultsTable {
             .enter()
             .append('td')
             .append('div')
-                .text((d) => getCellText(d))
-                    .attr('class', (d) => getLoader(d));
+            .attr('class', (d) => getLoader(d))
+            .html((d) => getCellContent(d));
+            
         
         this._rows.exit().remove();
         
         this._cells = this._rows.selectAll('td')
             .data((row) => bindData(row, this))
             .select('div')
-                .text((d) => getCellText(d))
-                    .attr('class', (d) => getLoader(d));
+            .attr('class', (d) => getLoader(d))
+            .html((d) => getCellContent(d));
+            
         
         this._cells.enter()
             .append('td')
             .append('div')
-            .text((d) => getCellText(d))
-                .attr('class', (d) => getLoader(d));
+            .attr('class', (d) => getLoader(d))
+            .html((d) => getCellContent(d))
         
         this._cells.exit().remove();
 
@@ -440,7 +445,7 @@ function startRequests(queries) {
 }
 
 function lexInfoTagsToString(tags) {
-    let str = '';
+    let span = d3.select(document.createElement('span'));
     let label, comment;
     let size = Object.keys(tags).length;
     let i = 0, lineEnd;
@@ -452,11 +457,18 @@ function lexInfoTagsToString(tags) {
             let t = lexInfoTagsDescription[element];
             label = (t) ? lexInfoTagsDescription[element].label : '';
             comment = (t) ? lexInfoTagsDescription[element].comment : '';
-            str += label + lineEnd;
-            //str += '<span style="cursor: pointer" data-toggle="tooltip" data-placement="top" container="body" title="' + comment + '">[' + label + ']</span>';
+            let li = d3.select(document.createElement('span'));
+            li.attr('class', 'morpho-tags')
+                .attr('style', "cursor: pointer")
+                .attr('comment', comment)
+                .text('[' + label + ']' + lineEnd);
+                
+            span.append(() => li.node());
+            // str += '<span style="cursor: pointer" data-toggle="tooltip" data-placement="top" container="body" title="' + comment + '">[' + label + lineEnd ']</span>';
+            //<button type="button" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="" data-original-title="Tooltip eklwjdlsjdfljsdlfkjldsktop">Top</button>
         }
     }
-    return str;
+    return span;
 }
 
 
