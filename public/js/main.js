@@ -1,8 +1,8 @@
 /**
  * Инициализация и запуск редктора ACE в #editor-container
  */
-var demoTxt = 'Выставка "Человек как птица. Образы путешествий" исследует вопросы новых открытий на стыке оптики и искусства, в тех сферах, которые объединены стремлением человека к познанию мира и определению своего места в нем.'
-// var demoTxt = 'Выставка "Человек как птица. Образы путешествий"'
+var demoTxt = 'Выставка "Человек как птица. Образы путешествий" исследует вопросы новых открытий на стыке оптики и искусства, в тех сферах, которые объединены стремлением человека к познанию мира и определению своего места в нем.';
+// demoTxt = 'как'
 var editor, EditSession, nlpsession, Tokenizer, BackgroundTokenizer, bgTokenizer, Range, Search, search;
 function initACE(){
     let container = document.getElementById('editor-container');
@@ -168,13 +168,15 @@ class QueryWorker extends MyEventEmitter {
 }
 
 class Results extends MyEventEmitter {
-    constructor (headers, firstHeader) {
+    constructor (tailHeaders, firstHeader) {
         super();
         this._db = [];
-        this._headers = headers;
-        this._firstHeader = firstHeader;
-        this._headers.unshift(this._firstHeader);
-        this.emit('init', headers);
+        this._tailHeaders = tailHeaders || ['Морфология', 'Лемма', 'Произношение'];
+        this._firstHeader = firstHeader || 'Слово';
+        this._headers = [];
+        this._headers.push(this._firstHeader);
+        this._headers = this._headers.concat(this._tailHeaders);
+        
     }
 
     clear() {
@@ -185,26 +187,26 @@ class Results extends MyEventEmitter {
     addWords(words) {
         words.forEach((word) => {
             let record = {};
+            let emptyHypothese = {};
             this._headers.forEach((key) => {
                 if (key == this._firstHeader) {
                     record[key] = word;
                     record['id'] = word;
                 }
-                else record[key] = 'loading';
-                record['found'] = undefined;
+                else emptyHypothese[key] = 'loading';
             })
+            record.hypotheses = [];
             this._db.push(record);
         });
         this.emit('addWords');
     }
 
-    addCell(props) {
+    addHypothesis(props) {
         for(let i = 0, l = this._db.length; i < l; i++) {
             if (this._db[i].id == props.word) {
-                this._db[i][props.type] = props.content;
-                this.emit('addCell', props);
-                if (props.type == 'liTags') getLiPOSClass(props);
-                if (props.type == 'posClass') updateACEMode(this._db);
+                this._db[i].hypotheses.push(props.content);
+                this.emit('addHypothesis');
+                if (props.content.posClass) updateACEMode(this._db);
                 break;
             }
         }
@@ -225,83 +227,114 @@ class ResultsTable {
     constructor(results, container) {
         this._res = results;
         this._headers = this._res._headers;
+        this._firstHeader = this._res._firstHeader;
+        this._tailHeaders = this._res._tailHeaders;
         this._container = container;
+        this._firstHeaderWidth = '15'; // %
+        this._tailHeaderWidth = 100 / this._tailHeaders.length;
         this._createTable();
 
-        this._res.on('addWords', () => this._update());
-        this._res.on('addCell', (props) => this._update(props));
+        this._res.on('addWords', () => this._createTableBody());
+        this._res.on('addHypothesis', (props) => this._updateHypotheses());
     }
     
     _createTable() {
-        this._table = d3.select(this._container)
-                        .append('div')
-                            .attr('class', 'table-responsive')
-                            .append('table')
-                                .attr('class', 'table table-hover table-condensed');
-        this._thead = this._table.append('thead');
-        this._tbody = this._table.append('tbody');
+        this._table = document.querySelector(this._container);
+        let div = document.createElement('div');
+        div.setAttribute('class', 'table-responsive');
+        let table = document.createElement('table');
+        table.setAttribute('class', 'table table-hover table-condensed');
+        
+        this._thead = document.createElement('thead');
+        this._tbody = document.createElement('tbody');
+        let theadTr = document.createElement('tr');
 
-        this._thead.append('tr')
-            .selectAll('th')
-            .data(this._headers)
-            .enter()
-                .append('th')
-                    .text((h) => {return h});
+        this._headers.forEach((header) => {
+            let th = document.createElement('th');
+            let width = (header == this._firstHeader) ? this._firstHeaderWidth : this._tailHeaderWidth;
+            th.setAttribute('width', width + '%');
+            th.innerText = header;
+            theadTr.appendChild(th);
+        });
+
+        this._thead.appendChild(theadTr);
+        table.appendChild(this._thead);
+        table.appendChild(this._tbody);
+        div.appendChild(table);
+        this._table.appendChild(div);
     }
 
-    _update() {
-        this._rows = this._tbody.selectAll('tr')
-            .data(this._res._db);
-        
-        function bindData(row, that) {
-            return that._headers.map((h) => {
-                return {header: h, value: row[h], word: row[that._res._firstHeader]};
-            });
-        }
+    _getLoader(str) {
+        if (str == 'loading') return 'loader';
+        else return '';
+    }
 
-        function getCellContent(d) {
-            let span = d3.select(document.createElement('span'));
-            if (typeof(d.value) == 'object' && d.value != null) span = d.value;
-            else if (d.value == 'loading') span.text('');
-            else if (d.value == 'error') span.text('☠️');
-            else if (!d.value) span.text('🛠');
-            else span.text(d.value);
-            return span.node().outerHTML;
+    _getCellContent(data) {
+        let span = document.createElement('span')
+        if (typeof(data) == 'object') {
+            span = data;
         }
+        else if (data == 'loading') span.innerText = '';
+        else if (data == 'error') span.innerText = '☠️';
+        else if (!data) span.innerText = '🛠';
+        else span.innerText = data;
+        return span.outerHTML;
+    }
 
-        function getLoader(d) {
-            if (d.value == 'loading') return 'loader';
-            else return '';
-        }
-
-        this._rows.enter()
-            .append('tr')
-            .selectAll('td')
-            .data((row) => bindData(row, this))
-            .enter()
-            .append('td')
-            .append('div')
-            .attr('class', (d) => getLoader(d))
-            .html((d) => getCellContent(d));
+    _createTableBody() {
+        this._tbody.innerHTML = '';
+        this._res._db.forEach((record) => {
+            let tr = document.createElement('tr');
+            let wordTd = document.createElement('td');
+            wordTd.setAttribute('width', this._firstHeaderWidth + '%');
+            wordTd.innerText = record[this._firstHeader];
+            let hypothesesTd = document.createElement('td');
+            hypothesesTd.setAttribute('class', 'hypotheses-table');
+            hypothesesTd.setAttribute('colspan', this._headers.length - 1);
+            let hypothesTable = document.createElement('table');
+            hypothesTable.setAttribute('class', 'table table-hover table-condensed');
+            let hypothesTbody = document.createElement('tbody');
+            let hypothesesRow = document.createElement('tr');
+            let hypothesesDiv = document.createElement('div');
+            hypothesesDiv.setAttribute('class', 'loader');
             
-        
-        this._rows.exit().remove();
-        
-        this._cells = this._rows.selectAll('td')
-            .data((row) => bindData(row, this))
-            .select('div')
-            .attr('class', (d) => getLoader(d))
-            .html((d) => getCellContent(d));
-            
-        
-        this._cells.enter()
-            .append('td')
-            .append('div')
-            .attr('class', (d) => getLoader(d))
-            .html((d) => getCellContent(d))
-        
-        this._cells.exit().remove();
+            hypothesesRow.appendChild(hypothesesDiv);
+            hypothesTbody.appendChild(hypothesesRow);
+            hypothesTable.appendChild(hypothesTbody);
+            hypothesesTd.appendChild(hypothesTable);
+            tr.appendChild(wordTd);
+            tr.appendChild(hypothesesTd);
+            this._tbody.appendChild(tr);
 
+            record.element = {
+                hypotheses: hypothesTbody,
+                word: wordTd,
+            }
+        })
+    }
+
+    _updateHypotheses() {
+        this._res._db.forEach((record) => {
+            let posClass = (record.hypotheses[0]) ? 'ace_morph_' + record.hypotheses[0].posClass : '';
+            record.element.word.setAttribute('class', posClass);
+
+            let hypoTbody = record.element.hypotheses;
+            hypoTbody.innerHTML = '';
+            record.hypotheses.forEach((hypo) => {
+                let tr = document.createElement('tr');
+                this._tailHeaders.forEach((header) => {
+                    let td = document.createElement('td');
+                    td.setAttribute('width', this._tailHeaderWidth + '%');
+                    let div = document.createElement('div');
+                    let content = hypo[header];
+                    div.setAttribute('class', this._getLoader(content));
+                    div.innerHTML = this._getCellContent(content);
+                    td.appendChild(div);
+                    tr.appendChild(td);
+                })
+                hypoTbody.appendChild(tr);
+            })
+        });
     }
 
 }
@@ -319,15 +352,12 @@ let availableWorkers = maxWorkers;
 // console.time
 var workerCounter = 0, errorCounter = 0;
 
-let headers = ['Морфология', 'Лемма', 'Произношение'];
+let tailHeaders = ['ЧР', 'Морфология', 'Лемма', 'Произношение'];
 let firstHeader = 'Слово';
-let results = new Results(headers, firstHeader);
+let results = new Results(tailHeaders, firstHeader);
 let table = new ResultsTable(results, '#words-container');
 
 function getTextInfo() {
-    let queries = [];
-
-    console.time('query');
     let tokenTypes = ["WORD.CYRIL"];
     let tokens = Az.Tokens(nlpsession.getDocument().getValue()).done(tokenTypes);
     let words = new Set;
@@ -335,102 +365,150 @@ function getTextInfo() {
         tokens.forEach((t) => {
             words.add(t.toString().toLowerCase());
         });
-        words = Array.from(words);
-        let maxQueriesInEachWorker = Math.ceil(words.length / maxWorkers);
-        // console.log('---WORKERS', maxQueriesInEachWorker, maxWorkers);
-        results.clear();
-        results.addWords(words);
-        for (let i = 0, l = words.length, word = ''; i < l; i++) {
-            word = words[i];
-            queries.push({
-                id: word,
-                query: 'PREFIX ontolex: <http://www.w3.org/ns/lemon/ontolex#> \
-                        PREFIX lexinfo: <http://www.lexinfo.net/ontology/2.0/lexinfo#> \
-                        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> \
-                        SELECT DISTINCT ?formP ?formO ?lemmaWr ?lemmaP ?lemmaO ?phoneticRep \
-                        WHERE { \
-                            ?formId ontolex:writtenRep "' + word + '"@ru . \
-                            { ?formId ?formP ?formO . \
-                                FILTER( REGEX( STR(?formP), "http://www.lexinfo.net/ontology/2.0/lexinfo" ) ) \
-                            } \
-                            UNION \
-                            {?formId ontolex:phoneticRep ?phoneticRep .} \
-                            UNION \
-                            { ?wordId ontolex:otherForm ?formId ; \
-                                ontolex:canonicalForm ?lemmaId . \
-                                OPTIONAL { \
-                                    ?lemmaId ontolex:writtenRep ?lemmaWr . \
-                                    ?lemmaId ?lemmaP ?lemmaO . \
-                                    FILTER( REGEX( STR(?lemmaP), "http://www.lexinfo.net/ontology/2.0/lexinfo" ) ) \
-                                } \
-                            } \
-                        }',
-            });
-            if (queries.length == maxQueriesInEachWorker) {
-                startRequests(queries);
-                queries = [];
-            } else if (i+1 == l) startRequests(queries);
-        }
+        startRequest(Array.from(words));
     }
 }
 
-function startRequests(queries) {
+function startRequest(word) {
+    let queries = [];
+    let words;
+    if (typeof(word) == 'string') {
+        words = [];
+        words.push(word);
+    }
+    else words = word;
+    console.time('query');
+    let maxQueriesInEachWorker = Math.ceil(words.length / maxWorkers);
+    results.clear();
+    results.addWords(words);
+    for (let i = 0, l = words.length, word = ''; i < l; i++) {
+        word = words[i];
+        queries.push({
+            id: word,
+            query: 'PREFIX ontolex: <http://www.w3.org/ns/lemon/ontolex#> \
+                    PREFIX lexinfo: <http://www.lexinfo.net/ontology/2.0/lexinfo#> \
+                    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> \
+                    SELECT DISTINCT ?wordId ?formId ?lemmaId ?formP ?formO ?lemmaWr ?lemmaP ?lemmaO ?phoneticRep \
+                    WHERE { \
+                        ?formId ontolex:writtenRep "' + word + '"@ru . \
+                        ?formId ?formP ?formO . \
+                        \
+                        ?wordId ontolex:otherForm ?formId ; \
+                                ontolex:canonicalForm ?lemmaId . \
+                        \
+                        ?lemmaId ontolex:writtenRep ?lemmaWr . \
+                        ?lemmaId ?lemmaP ?lemmaO . \
+                        \
+                        OPTIONAL { \
+                            ?formId ontolex:phoneticRep ?phoneticRep . \
+                        } \
+                        \
+                        FILTER( REGEX( STR(?formP), "http://www.lexinfo.net/ontology/2.0/lexinfo" ) ) \
+                        FILTER( REGEX( STR(?lemmaP), "http://www.lexinfo.net/ontology/2.0/lexinfo" ) ) \
+                    }',
+        });
+        if (queries.length == maxQueriesInEachWorker) {
+            executeRequests(queries);
+            queries = [];
+        } else if (i+1 == l) executeRequests(queries);
+    }
+}
+
+function executeRequests(queries) {
     let params = {
         datasource: 'http://ldf.kloud.one/ontorugrammaform',
         queries: queries,
     }
+    console.log(params);
     let w = new QueryWorker(params);
     
     ++workerCounter;
     
     w.start();
     w.on('data', (res) => {
+        // если нет данных, или ошибка
+        if (res.id == 'как') console.log(res);
         if (!res.data || res.data.length == 0) {
             if (res != 0) {
                 // для таблицы результатов
                 // если ошибка, то сообщение об ошибки, иначе - сообщение что нет значения.
-                let value = (res.error) ? 'error' : null;
-                results.addCell({word: res.id, type: 'Лемма', content: value});
-                results.addCell({word: res.id, type: 'Произношение', content: value});
-                results.addCell({word: res.id, type: 'Морфология', content: value});
-                results.addCell({word: res.id, type: 'found', content: 'no'});
+                let value = 'error';
+                results.addHypothesis({
+                        word: res.id,
+                        content: {
+                            'Лемма': value,
+                            'ЧР': value,
+                            'Морфология': value,
+                            'Ссылка': value,
+                            'Произношение': value,
+                            'posClass': value,
+                        }
+                    });
             }
         }
+        // данные есть
         else {
-            let morph = {},
-                lemmaWr,
-                phoneticRep;
+            let words = {};
+            /*
+            results = {
+                formId: {
+                    morph: {
+                        formP(lemmaP): formO(lemmaO),
+                    },
+                    lemmaWr: '',
+                    phoneticRep: '',
+                    wordId: ''
+                }
+            }
+            */
             res.data.forEach((r) => {
+                let wordId = r['?formId'];
+                if (!words.hasOwnProperty(wordId)) words[wordId] = {};
+                let w = words[wordId];
+                if(!w.hasOwnProperty('morph')) w.morph = {};
+                let m = w.morph;
+
                 let formO = r['?formO'],
                     formP = r['?formP'],
                     lemmaO = r['?lemmaO'],
                     lemmaP = r['?lemmaP'];
                 
-                if (formP && formO) morph[formP] = formO;
-                if (lemmaP && lemmaO) morph[lemmaP] = lemmaO;
-
-                let isLemmaAdded = false;
-                if (r['?lemmaWr'] && !isLemmaAdded) {
-                    lemmaWr = getLiteral(r['?lemmaWr']);
-                    
-                    // TODO kille me!
-                    if (res.id == 'можно') {
-                        lemmaWr = undefined;
-                    }
-                    
-                    isLemmaAdded = true;
+                if (formP && formO) {
+                    m[formP] = formO;
                 }
-                let isPhoneticRepAdded = false;
-                if (r['?phoneticRep'] && !isPhoneticRepAdded) {
-                    phoneticRep = getLiteral(r['?phoneticRep']);
-                    isPhoneticRepAdded = true;
+                if (lemmaP && lemmaO) {
+                    m[lemmaP] = lemmaO;
+                }
+
+                if (r['?lemmaWr'] && !w.hasOwnProperty('lemmaWr')) {
+                    let lemmaWr = getLiteral(r['?lemmaWr']);
+                    w.lemmaWr = lemmaWr;
+                }
+                if (r['?phoneticRep'] && !w.hasOwnProperty('phoneticRep')) {
+                    let phoneticRep = getLiteral(r['?phoneticRep']);
+                    w.phoneticRep = phoneticRep;
+                }
+                if (r['?wordId'] && !w.hasOwnProperty('wordId')) {
+                    w.wordId = r['?wordId'];
                 }
             });
-            results.addCell({word: res.id, type: 'Лемма', content: lemmaWr || undefined});
-            results.addCell({word: res.id, type: 'Произношение', content: phoneticRep  || undefined});
-            results.addCell({word: res.id, type: 'Морфология', content: lexInfoTagsToString(morph)});
-            results.addCell({word: res.id, type: 'liTags', content: morph});
-            results.addCell({word: res.id, type: 'found', content: 'yes'});
+            for (let formId in words) {
+                if (words.hasOwnProperty(formId)) {
+                    let el = words[formId];
+                    let posClass = getLiPOSClass(el.morph);
+                    results.addHypothesis({
+                        word: res.id,
+                        content: {
+                            'Лемма': el.lemmaWr || undefined,
+                            'Произношение': el.phoneticRep || undefined,
+                            'ЧР': posClass,
+                            'Морфология': lexInfoTagsToString(el.morph),
+                            'Ссылка': formId,
+                            'posClass': posClass,
+                        }
+                    });
+                }
+            }
         }
     });
     
@@ -445,7 +523,7 @@ function startRequests(queries) {
 }
 
 function lexInfoTagsToString(tags) {
-    let span = d3.select(document.createElement('span'));
+    let span = document.createElement('span');
     let label, comment;
     let size = Object.keys(tags).length;
     let i = 0, lineEnd;
@@ -457,20 +535,24 @@ function lexInfoTagsToString(tags) {
             let t = lexInfoTagsDescription[element];
             label = (t) ? lexInfoTagsDescription[element].label : '';
             comment = (t) ? lexInfoTagsDescription[element].comment : '';
-            let li = d3.select(document.createElement('span'));
-            li.attr('class', 'morpho-tags')
-                .attr('style', "cursor: pointer")
-                .attr('comment', comment)
-                .text('[' + label + ']' + lineEnd);
-                
-            span.append(() => li.node());
-            // str += '<span style="cursor: pointer" data-toggle="tooltip" data-placement="top" container="body" title="' + comment + '">[' + label + lineEnd ']</span>';
-            //<button type="button" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="" data-original-title="Tooltip eklwjdlsjdfljsdlfkjldsktop">Top</button>
+            let li = document.createElement('span');
+            li.setAttribute('class', 'morpho-tags');
+            li.setAttribute('style', "cursor: pointer");
+            li.setAttribute('tooltipContent', comment);
+            li.setAttribute('onmouseover', 'showTooltip(this)')
+            li.innerText ='[' + label + ']' + lineEnd;
+            span.appendChild(li);
         }
     }
     return span;
 }
 
+function showTooltip(element) {
+    new Tooltip(element, {
+        placement: 'top',
+        title: element.attributes.tooltipContent.value
+    });
+}
 
 /**
  * скроллит экран к элементу
@@ -545,8 +627,8 @@ function getACEModeRules(words) {
         // rule.start с инклудами правил
         rule.start.push({include: word});
         // название класса CSS
-        if (w.hasOwnProperty('posClass')) {
-            token = w.posClass;
+        let token = (w.hypotheses[0]) ? w.hypotheses[0].posClass : null;
+        if (token) {
             token = `MORPH.morph_${token}`;
         }
         else token = 'MORPH.morph_null';
@@ -565,16 +647,16 @@ function getACEModeRules(words) {
 }
 
 /**
- * создает свойство с классом части речи
- * @param {*} props 
+ * возвращает часть речи
+ * @param {*} morph 
  */
-function getLiPOSClass(props) {
+function getLiPOSClass(morph) {
     let liPrefix = 'http://www.lexinfo.net/ontology/2.0/lexinfo#';
-    let word = props.word;
-    let pos = props.content['http://www.lexinfo.net/ontology/2.0/lexinfo#partOfSpeech'];
+    let liPOSURI = 'http://www.lexinfo.net/ontology/2.0/lexinfo#partOfSpeech';
+    let pos = (morph.hasOwnProperty(liPOSURI)) ? morph[liPOSURI] : undefined;
     let cl = lexInfoPOSClasses[pos];
-    cl = (cl) ? cl.replace(liPrefix, '') : null;
-    results.addCell({word: word, type: 'posClass', content: cl});
+    cl = (cl) ? cl.replace(liPrefix, '') : undefined;
+    return cl;
 }
 
 /**

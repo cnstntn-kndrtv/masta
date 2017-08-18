@@ -22,3 +22,16 @@
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+.hypotheses-table {
+    padding: 0 !important;
+}
+
+.hypotheses-table table {
+    margin: 0;
+    background-color: transparent !important;
+}
+
+.hypotheses-table table tr:hover {
+    background: rgba(0, 0, 0, 0.05);
+}

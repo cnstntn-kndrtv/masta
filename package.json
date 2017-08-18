@@ -35,8 +35,10 @@
     "lru-cache": "^4.0.2",
     "lru_map": "^0.3.3",
     "morgan": "~1.7.0",
+    "popper.js": "^1.12.2",
     "pug": "latest",
     "serve-favicon": "~2.3.0",
+    "tooltip.js": "^1.1.5",
     "uglify-js": "^3.0.27"
   },
   "devDependencies": {

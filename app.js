@@ -43,6 +43,8 @@ app.use('/js', express.static(path.join(__dirname, './node_modules/az/src')));
 // app.use('/dicts', express.static(path.join(__dirname, './node_modules/az/dicts')));
 // d3
 app.use('/js', express.static(path.join(__dirname, './node_modules/d3/build')));
+app.use('/js', express.static(path.join(__dirname, './node_modules/popper.js/dist/umd')));
+app.use('/js', express.static(path.join(__dirname, './node_modules/tooltip.js/dist/umd')));
 
 
 // routes
