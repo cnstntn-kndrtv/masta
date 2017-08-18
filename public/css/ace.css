@@ -1,12 +1,12 @@
 #editor-container {
     /*position: absolute;*/
     /*width: 500px;*/
-    height: 300px;
+    height: 700px;
     border: 1px solid lightgray;
 }
 
 #results-panel {
-    height: 500px !important;
+    height: 750px !important;
 }
 
 #all-forms-table {

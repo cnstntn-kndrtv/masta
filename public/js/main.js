@@ -403,8 +403,6 @@ function startRequest(word) {
                             ?formId ontolex:phoneticRep ?phoneticRep . \
                         } \
                         \
-                        FILTER( REGEX( STR(?formP), "http://www.lexinfo.net/ontology/2.0/lexinfo" ) ) \
-                        FILTER( REGEX( STR(?lemmaP), "http://www.lexinfo.net/ontology/2.0/lexinfo" ) ) \
                     }',
         });
         if (queries.length == maxQueriesInEachWorker) {
@@ -419,7 +417,6 @@ function executeRequests(queries) {
         datasource: 'http://ldf.kloud.one/ontorugrammaform',
         queries: queries,
     }
-    console.log(params);
     let w = new QueryWorker(params);
     
     ++workerCounter;
@@ -522,16 +519,18 @@ function executeRequests(queries) {
     });
 }
 
+var liPrefix = 'http://www.lexinfo.net/ontology/2.0/lexinfo#';
 function lexInfoTagsToString(tags) {
     let span = document.createElement('span');
     let label, comment;
     let size = Object.keys(tags).length;
     let i = 0, lineEnd;
     for (let key in tags) {
-        if (tags.hasOwnProperty(key)) {
+        let isLexinfoTag = (key.indexOf(liPrefix) >= 0) ? true : false;
+        if (tags.hasOwnProperty(key) && isLexinfoTag) {
             i++;
             let element = tags[key];
-            lineEnd = (i < size) ? ', ' : '';
+            lineEnd = (i < size) ? ' ' : '';
             let t = lexInfoTagsDescription[element];
             label = (t) ? lexInfoTagsDescription[element].label : '';
             comment = (t) ? lexInfoTagsDescription[element].comment : '';
@@ -651,8 +650,7 @@ function getACEModeRules(words) {
  * @param {*} morph 
  */
 function getLiPOSClass(morph) {
-    let liPrefix = 'http://www.lexinfo.net/ontology/2.0/lexinfo#';
-    let liPOSURI = 'http://www.lexinfo.net/ontology/2.0/lexinfo#partOfSpeech';
+    let liPOSURI = liPrefix + 'partOfSpeech';
     let pos = (morph.hasOwnProperty(liPOSURI)) ? morph[liPOSURI] : undefined;
     let cl = lexInfoPOSClasses[pos];
     cl = (cl) ? cl.replace(liPrefix, '') : undefined;
