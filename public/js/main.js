@@ -372,14 +372,14 @@ function getTextInfo() {
     }
 }
 
-function startRequest(word) {
+function startRequest(q) {
     let queries = [];
     let words;
-    if (typeof(word) == 'string') {
+    if (typeof(q) == 'string') {
         words = [];
-        words.push(word);
+        words.push(q);
     }
-    else words = word;
+    else words = q;
     console.time('query');
     let maxQueriesInEachWorker = Math.ceil(words.length / maxWorkers);
     for (let i = 0, l = words.length, word = ''; i < l; i++) {
