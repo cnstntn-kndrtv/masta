@@ -179,19 +179,20 @@ class Results extends MyEventEmitter {
         
     }
 
-    clear() {
+    _clear() {
         this._db = [];
         this.emit('clear');
     }
 
     addWords(words) {
+        this._clear();
         words.forEach((word) => {
             let record = {};
             let emptyHypothese = {};
             this._headers.forEach((key) => {
                 if (key == this._firstHeader) {
                     record[key] = word;
-                    record['id'] = word;
+                    record.id = word;
                 }
                 else emptyHypothese[key] = 'loading';
             })
@@ -205,7 +206,7 @@ class Results extends MyEventEmitter {
         for(let i = 0, l = this._db.length; i < l; i++) {
             if (this._db[i].id == props.word) {
                 this._db[i].hypotheses.push(props.content);
-                this.emit('addHypothesis');
+                this.emit('addHypothesis', this._db[i]);
                 if (props.content.posClass) updateACEMode(this._db);
                 break;
             }
@@ -235,7 +236,7 @@ class ResultsTable {
         this._createTable();
 
         this._res.on('addWords', () => this._createTableBody());
-        this._res.on('addHypothesis', (props) => this._updateHypotheses());
+        this._res.on('addHypothesis', (record) => this._updateHypotheses(record));
     }
     
     _createTable() {
@@ -293,6 +294,7 @@ class ResultsTable {
             hypothesesTd.setAttribute('colspan', this._headers.length - 1);
             let hypothesTable = document.createElement('table');
             hypothesTable.setAttribute('class', 'table table-hover table-condensed');
+
             let hypothesTbody = document.createElement('tbody');
             let hypothesesRow = document.createElement('tr');
             let hypothesesDiv = document.createElement('div');
@@ -300,6 +302,7 @@ class ResultsTable {
             
             hypothesesRow.appendChild(hypothesesDiv);
             hypothesTbody.appendChild(hypothesesRow);
+
             hypothesTable.appendChild(hypothesTbody);
             hypothesesTd.appendChild(hypothesTable);
             tr.appendChild(wordTd);
@@ -313,28 +316,26 @@ class ResultsTable {
         })
     }
 
-    _updateHypotheses() {
-        this._res._db.forEach((record) => {
-            let posClass = (record.hypotheses[0]) ? 'ace_morph_' + record.hypotheses[0].posClass : '';
-            record.element.word.setAttribute('class', posClass);
+    _updateHypotheses(record) {
+        let posClass = (record.hypotheses[0]) ? 'ace_morph_' + record.hypotheses[0].posClass : '';
+        record.element.word.setAttribute('class', posClass);
 
-            let hypoTbody = record.element.hypotheses;
-            hypoTbody.innerHTML = '';
-            record.hypotheses.forEach((hypo) => {
-                let tr = document.createElement('tr');
-                this._tailHeaders.forEach((header) => {
-                    let td = document.createElement('td');
-                    td.setAttribute('width', this._tailHeaderWidth + '%');
-                    let div = document.createElement('div');
-                    let content = hypo[header];
-                    div.setAttribute('class', this._getLoader(content));
-                    div.innerHTML = this._getCellContent(content);
-                    td.appendChild(div);
-                    tr.appendChild(td);
-                })
-                hypoTbody.appendChild(tr);
+        let hypoTbody = record.element.hypotheses;
+        hypoTbody.innerHTML = '';
+        record.hypotheses.forEach((hypo) => {
+            let tr = document.createElement('tr');
+            this._tailHeaders.forEach((header) => {
+                let td = document.createElement('td');
+                td.setAttribute('width', this._tailHeaderWidth + '%');
+                let div = document.createElement('div');
+                let content = hypo[header];
+                div.setAttribute('class', this._getLoader(content));
+                div.innerHTML = this._getCellContent(content);
+                td.appendChild(div);
+                tr.appendChild(td);
             })
-        });
+            hypoTbody.appendChild(tr);
+        })
     }
 
 }
@@ -360,12 +361,14 @@ let table = new ResultsTable(results, '#words-container');
 function getTextInfo() {
     let tokenTypes = ["WORD.CYRIL"];
     let tokens = Az.Tokens(nlpsession.getDocument().getValue()).done(tokenTypes);
-    let words = new Set;
+    let uniqueWords = new Set;
     if (tokens.length != 0 ) {
         tokens.forEach((t) => {
-            words.add(t.toString().toLowerCase());
+            uniqueWords.add(t.toString().toLowerCase());
         });
-        startRequest(Array.from(words));
+        uniqueWords = Array.from(uniqueWords);
+        results.addWords(uniqueWords);
+        startRequest(uniqueWords);
     }
 }
 
@@ -379,8 +382,6 @@ function startRequest(word) {
     else words = word;
     console.time('query');
     let maxQueriesInEachWorker = Math.ceil(words.length / maxWorkers);
-    results.clear();
-    results.addWords(words);
     for (let i = 0, l = words.length, word = ''; i < l; i++) {
         word = words[i];
         queries.push({
@@ -424,7 +425,6 @@ function executeRequests(queries) {
     w.start();
     w.on('data', (res) => {
         // если нет данных, или ошибка
-        if (res.id == 'как') console.log(res);
         if (!res.data || res.data.length == 0) {
             if (res != 0) {
                 // для таблицы результатов
